@@ -10,7 +10,10 @@
     * [Strings Interning](#strings-interning)
     * [Strings Allocated using constructor](#strings-allocated-using-constructor)
     * [Manual Interning](#manual-interning)
+    * [Intern in Java 6](#intern-in-java-6)
+    * [Intern in Java 7](#intern-in-java-7)
     * [Garbage Collection](#garbage-collection)
+    * [JVM string pool implementation](#jvm-string-pool-implementation)
 
 # Stacks and Heap
 
@@ -184,6 +187,10 @@ To solve this problem you can use a Java synchronized block. A synchronized bloc
 
 Java String Pool — the special memory region where Strings are stored by the JVM. String pooling (aka string canonicalisation) is a process of replacing several String objects with equal value but different identity with a single shared String object. 
 
+You can achieve this goal by keeping your own Map<String, String> (with possibly soft or weak references depending on your requirements) and using map values as canonicalised values. Or you can use String.intern() method which is provided to you by JDK.
+
+At times of Java 6 using String.intern() was forbidden by many standards due to a high possibility to get an OutOfMemoryException if pooling went out of control. Oracle Java 7 implementation of string pooling was changed considerably.
+
 ## Strings Interning
 
 Thanks to the immutability of Strings in Java, the JVM can optimize the amount of memory allocated for them by storing only one copy of each literal String in the pool. This process is called interning.
@@ -247,6 +254,13 @@ assertThat(constantString)
 
 ## Intern in Java 6
 
+In those good old days all interned strings were stored in the PermGen – the fixed size part of heap mainly used for storing loaded classes and string pool. Besides explicitly interned strings, PermGen string pool also contained all literal strings earlier used in your program (the important word here is used – if a class or method was never loaded/called, any constants defined in it will not be loaded).
+
+The biggest issue with such string pool in Java 6 was its location – the PermGen. PermGen has a fixed size and can not be expanded at runtime. You can set it using -XX:MaxPermSize=N option. As far as I know, the default PermGen size varies between 32M and 96M depending on the platform. You can increase its size, but its size will still be fixed. Such limitation required very careful usage of String.intern – you’d better not intern any uncontrolled user input using this method. That’s why string pooling at times of Java 6 was mostly implemented in the manually managed maps.
+
+## Intern in Java 7
+
+Oracle engineers made an extremely important change to the string pooling logic in Java 7 – the string pool was relocated to the heap. It means that you are no longer limited by a separate fixed size memory area. All strings are now located in the heap, as most of other ordinary objects, which allows you to manage only the heap size while tuning your application. Technically, this alone could be a sufficient reason to reconsider using String.intern() in your Java 7 programs.
 
 ## Garbage Collection
 
@@ -255,6 +269,19 @@ Before Java 7, the JVM placed the Java String Pool in the PermGen space, which h
 The risk of interning Strings in the PermGen (instead of the Heap) is that we can get an OutOfMemory error from the JVM if we intern too many Strings.
 
 From Java 7 onwards, the Java String Pool is stored in the Heap space, which is garbage collected by the JVM. The advantage of this approach is the reduced risk of OutOfMemory error because unreferenced Strings will be removed from the pool, thereby releasing memory.
+
+## JVM string pool implementation
+
+**The string pool is implemented as a fixed capacity hash map with each bucket containing a list of strings with the same hash code.** 
+
+The default pool size is 1009 (before Java7u40). It was a constant in the early versions of Java 6 and became configurable between Java6u30 and Java6u41. It is configurable in Java 7 from the beginning (at least it is configurable in Java7u02). You need to specify **-XX:StringTableSize=N**, where N is the string pool map size. Ensure it is a prime number for the better performance.
+
+This parameter will not help you a lot in Java 6, because you are still limited by a fixed size PermGen size. The further discussion will exclude Java 6.
+                                                 
+**Java7 (until Java7u40)**
+
+  
+  
 
 ## Performance and Optimizations
 
