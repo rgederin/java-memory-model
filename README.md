@@ -332,3 +332,4 @@ Since the new String representation will use the UTF-16 encoding only when neces
 * The default value of -XX:StringTableSize parameter is 1009 in Java 6 and Java 7 until Java7u40. It was increased to 60013 in Java 7u40 (same value is used in Java 8 as well).
 * If you are not sure about the string pool usage, try -XX:+PrintStringTableStatistics JVM argument. It will print you the string pool usage when your program terminates.
 
+![memory](https://github.com/rgederin/java-memory-model/blob/master/img/memory8.png)
