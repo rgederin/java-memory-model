@@ -14,6 +14,8 @@
     * [Intern in Java 7](#intern-in-java-7)
     * [Garbage Collection](#garbage-collection)
     * [JVM string pool implementation](#jvm-string-pool-implementation)
+    * [Java 9](#java-9)
+    * [Summary](#summary)
 
 # Stacks and Heap
 
@@ -280,8 +282,15 @@ This parameter will not help you a lot in Java 6, because you are still limited 
                                                  
 **Java7 (until Java7u40)**
 
+In Java 7, on the other hand, you are limited only by a much higher heap size. It means that you can set the string pool size to a rather high value in advance (this value depends on your application requirements). As a rule, one starts worrying about the memory consumption when the memory data set size grows to at least several hundred megabytes. In this situation, allocating 8-16 MB for a string pool with one million entries seems to be a reasonable trade off (do not use 1,000,000 as a -XX:StringTableSize value – it is not prime; use 1,000,003 instead).
   
+You may expect a uniform distribution of interned strings in the buckets.
+
+You must set a higher -XX:StringTableSize value (compared to the default 1009) if you intend to actively use String.intern() – otherwise this method performance will soon degrade to a linked list performance.
   
+**Java 7u40+ and Java 8**
+
+String pool size was increased in Java7u40 (this was a major performance update) to 60013. This value allows you to have approximately 30.000 distinct strings in the pool before your start experiencing collisions. Generally, this is sufficient for data which actually worth to intern. You can obtain this value using -XX:+PrintFlagsFinal JVM parameter.
 
 ## Performance and Optimizations
 
@@ -307,4 +316,19 @@ The default pool size is 1009. If we want to increase the pool size, we can use 
 
 Note that increasing the pool size will consume more memory but has the advantage of reducing the time required to insert the Strings into the table.
 
+## Java 9 
+
+Until Java 8, Strings were internally represented as an array of characters – char[], encoded in UTF-16, so that every character uses two bytes of memory.
+
+With Java 9 a new representation is provided, called Compact Strings. This new format will choose the appropriate encoding between char[] and byte[] depending on the stored content.
+
+Since the new String representation will use the UTF-16 encoding only when necessary, the amount of heap memory will be significantly lower, which in turn causes less Garbage Collector overhead on the JVM.
+
+## Summary
+
+* Stay away from String.intern() method on Java 6 due to a fixed size memory area (PermGen) used for JVM string pool storage.
+* Java 7 and 8 implement the string pool in the heap memory. It means that you are limited by the whole application memory for string pooling in Java 7 and 8.
+* Use -XX:StringTableSize JVM parameter in Java 7 and 8 to set the string pool map size. It is fixed, because it is implemented as a hash map with lists in the buckets. Approximate the number of distinct strings in your application (which you intend to intern) and set the pool size equal to some prime number close to this value multiplied by 2 (to reduce the likelihood of collisions). It will allow String.intern to run in the constant time and requires a rather small memory consumption per interned string (explicitly used Java WeakHashMap will consume 4-5 times more memory for the same task).
+* The default value of -XX:StringTableSize parameter is 1009 in Java 6 and Java 7 until Java7u40. It was increased to 60013 in Java 7u40 (same value is used in Java 8 as well).
+* If you are not sure about the string pool usage, try -XX:+PrintStringTableStatistics JVM argument. It will print you the string pool usage when your program terminates.
 
