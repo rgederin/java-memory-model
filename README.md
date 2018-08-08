@@ -5,6 +5,7 @@
     * [Java memory model and hardware architecture](#java-memory-model-and-hardware-architecture)
     * [Visibility of Shared Objects](#visibility-of-shared-objects)
     * [Race Conditions](#race-conditions)
+    * [Conclusions](#conclusions)
 
 # Stacks and Heap
 
@@ -161,3 +162,14 @@ This diagram illustrates an occurrence of the problem with race conditions as de
 ![memory](https://github.com/rgederin/java-memory-model/blob/master/img/memory7.png)
 
 To solve this problem you can use a Java synchronized block. A synchronized block guarantees that only one thread can enter a given critical section of the code at any given time. Synchronized blocks also guarantee that all variables accessed inside the synchronized block will be read in from main memory, and when the thread exits the synchronized block, all updated variables will be flushed back to main memory again, regardless of whether the variable is declared volatile or not.
+
+## Conclusions
+
+* Heap memory is used by all the parts of the application whereas stack memory is used only by one thread of execution.
+* Whenever an object is created, it’s always stored in the Heap space and stack memory contains the reference to it. Stack memory only contains local primitive variables and reference variables to objects in heap space.
+* Objects stored in the heap are globally accessible whereas stack memory can’t be accessed by other threads.
+* Memory management in stack is done in LIFO manner whereas it’s more complex in Heap memory because it’s used globally. Heap memory is divided into Young-Generation, Old-Generation etc, more details at Java Garbage Collection.
+* Stack memory is short-lived whereas heap memory lives from the start till the end of application execution.
+* We can use -Xms and -Xmx JVM option to define the startup size and maximum size of heap memory. We can use -Xss to define the stack memory size.
+* When stack memory is full, Java runtime throws java.lang.StackOverFlowError whereas if heap memory is full, it throws java.lang.OutOfMemoryError: Java Heap Space error.
+* Stack memory size is very less when compared to Heap memory. Because of simplicity in memory allocation (LIFO), stack memory is very fast when compared to heap memory.
