@@ -6,6 +6,11 @@
     * [Visibility of Shared Objects](#visibility-of-shared-objects)
     * [Race Conditions](#race-conditions)
     * [Conclusions](#conclusions)
+- [String pool](#string-pool)
+    * [Strings Interning](#strings-interning)
+    * [Strings Allocated using constructor](#strings-allocated-using-constructor)
+    * [Manual Interning](#manual-interning)
+    * [Garbage Collection](#garbage-collection)
 
 # Stacks and Heap
 
@@ -173,3 +178,106 @@ To solve this problem you can use a Java synchronized block. A synchronized bloc
 * We can use -Xms and -Xmx JVM option to define the startup size and maximum size of heap memory. We can use -Xss to define the stack memory size.
 * When stack memory is full, Java runtime throws java.lang.StackOverFlowError whereas if heap memory is full, it throws java.lang.OutOfMemoryError: Java Heap Space error.
 * Stack memory size is very less when compared to Heap memory. Because of simplicity in memory allocation (LIFO), stack memory is very fast when compared to heap memory.
+
+
+# String pool
+
+Java String Pool — the special memory region where Strings are stored by the JVM. String pooling (aka string canonicalisation) is a process of replacing several String objects with equal value but different identity with a single shared String object. 
+
+## Strings Interning
+
+Thanks to the immutability of Strings in Java, the JVM can optimize the amount of memory allocated for them by storing only one copy of each literal String in the pool. This process is called interning.
+
+When we create a String variable and assign a value to it, the JVM searches the pool for a String of equal value.
+
+If found, the Java compiler will simply return a reference to its memory address, without allocating additional memory.
+
+If not found, it’ll be added to the pool (interned) and its reference will be returned.
+
+Let’s write a small test to verify this:
+
+```
+
+String constantString1 = "Baeldung";
+String constantString2 = "Baeldung";
+         
+assertThat(constantString1)
+  .isSameAs(constantString2);
+  
+```
+
+## Strings Allocated using constructor
+
+When we create a String via the new operator, the Java compiler will create a new object and store it in the heap space reserved for the JVM.
+
+Every String created like this will point to a different memory region with its own address.
+
+Let’s see how this is different from the previous case:
+
+```
+
+String constantString = "Baeldung";
+String newString = new String("Baeldung");
+ 
+assertThat(constantString).isNotSameAs(newString);
+
+```
+
+## Manual Interning
+
+We can manually intern a String in the Java String Pool by calling the intern() method on the object we want to intern.
+
+Manually interning the String will store its reference in the pool, and the JVM will return this reference when needed.
+
+Let’s create a test case for this:
+
+```
+
+String constantString = "interned Baeldung";
+String newString = new String("interned Baeldung");
+ 
+assertThat(constantString).isNotSameAs(newString);
+ 
+String internedString = newString.intern();
+ 
+assertThat(constantString)
+  .isSameAs(internedString);
+  
+```
+
+## Intern in Java 6
+
+
+## Garbage Collection
+
+Before Java 7, the JVM placed the Java String Pool in the PermGen space, which has a fixed size — it can’t be expanded at runtime and is not eligible for garbage collection.
+
+The risk of interning Strings in the PermGen (instead of the Heap) is that we can get an OutOfMemory error from the JVM if we intern too many Strings.
+
+From Java 7 onwards, the Java String Pool is stored in the Heap space, which is garbage collected by the JVM. The advantage of this approach is the reduced risk of OutOfMemory error because unreferenced Strings will be removed from the pool, thereby releasing memory.
+
+## Performance and Optimizations
+
+In Java 6, the only optimization we can perform is increasing the PermGen space during the program invocation with the MaxPermSize JVM option:
+
+```
+-XX:MaxPermSize=1G
+```
+
+In Java 7, we have more detailed options to examine and expand/reduce the pool size. Let’s see the two options for viewing the pool size:
+
+```
+-XX:+PrintFlagsFinal
+
+-XX:+PrintStringTableStatistics
+```
+
+The default pool size is 1009. If we want to increase the pool size, we can use the StringTableSize JVM option:
+
+```
+-XX:StringTableSize=4901
+```
+
+Note that increasing the pool size will consume more memory but has the advantage of reducing the time required to insert the Strings into the table.
+
+
